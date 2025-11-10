@@ -966,6 +966,70 @@ def submit(de_id):
         results=results
     )
 
+# TIÊU CHÍ CHẤM ĐIỂM từ file data_2.txt
+RUBRIC_CRITERIA = """
+HỆ THỐNG TIÊU CHÍ CHẤM ĐIỂM (10 điểm):
+
+Câu 1 (1,5 điểm):
+- Năng lực: Trình bày được nội dung chính về đặc điểm của các lực lượng cách mạng và vai trò của nghị quyết (0,5 điểm)  
+- Kể tên các nhân vật lịch sử, sự kiện và phản ánh năng lực phân tích (0,25 điểm)
+- Mức độ đầy đủ về các vấn đề liên quan đến nội dung câu hỏi (0,25 điểm)
+- Trong thời đại ngày nay, phân tích vai trò của các lực lượng và ý nghĩa trong bối cảnh hiện tại (0,25 điểm)
+- Công xót người dân về việc phát triển và xây dựng lực lượng cách mạng (0,25 điểm)
+
+Câu 2 (1,5 điểm):
+- Em hãy nêu khái niệm và vai trò của lực lượng dân tộc trong sự nghiệp cách mạng (0,5 điểm)
+- Năng lực phân tích bối cảnh lịch sử và vai trò của ngoại lực (0,5 điểm)
+- Viết mạch lạc, có luận cứ về vai trò của các yếu tố trong phong trào cách mạng (0,5 điểm)
+"""
+
+
+def generate_grading_prompt():
+    """Tạo prompt chấm điểm dựa trên rubric"""
+    
+    prompt = f"""Bạn là giáo viên Lịch sử chấm bài. Hãy phân tích bài làm trong ảnh theo TIÊU CHÍ SAU:
+
+{RUBRIC_CRITERIA}
+
+YÊU CẦU CHẤM BÀI:
+1. Đọc kỹ bài làm của học sinh trong ảnh
+2. Chấm điểm CHI TIẾT cho TỪNG TIÊU CHÍ theo đúng thang điểm
+3. Phân tích theo format BẮT BUỘC:
+
+📊 TỔNG ĐIỂM: [X/3]
+
+📝 ĐIỂM CHI TIẾT:
+
+**CÂU 1 ([X]/1.5 điểm):**
+- Tiêu chí 1 (0.5đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 2 (0.25đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 3 (0.25đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 4 (0.25đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 5 (0.25đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+
+**CÂU 2 ([X]/1.5 điểm):**
+- Tiêu chí 1 (0.5đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 2 (0.5đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+- Tiêu chí 3 (0.5đ): [ĐẠT/CHƯA ĐẠT] - [Nhận xét cụ thể]
+
+
+
+❌ LỖI SAI CẦN SỬA (nếu có):
+- "Trích nguyên văn lỗi trong bài" → Sửa: [giải thích đúng]
+- "Trích nguyên văn lỗi khác" → Sửa: [giải thích đúng]
+
+💡 GỢI Ý CẢI THIỆN:
+[1-2 câu ngắn gọn để học sinh cải thiện bài làm]
+
+LƯU Ý QUAN TRỌNG:
+- Phải TRÍCH NGUYÊN VĂN câu/đoạn sai trong bài làm (đặt trong dấu ngoặc kép)
+- Chỉ ra lỗi CỤ THỂ: sai sự kiện, sai năm tháng, sai khái niệm, thiếu logic, thiếu độ sâu...
+- Chấm điểm CÔNG BẰNG theo đúng thang điểm từng tiêu chí
+- Tối đa 200 từ, ngắn gọn súc tích"""
+
+    return prompt
+
+
 @app.route('/upload_image', methods=['GET', 'POST'])
 def upload_image():
     ai_feedback = None
@@ -981,38 +1045,42 @@ def upload_image():
         try:
             img = Image.open(image_path)
             
-            # Prompt được cải thiện
-            prompt = """Bạn là giáo viên Lịch sử chấm bài. Phân tích bài làm này NGẮN GỌN theo format:
+            # SỬ DỤNG PROMPT MỚI với rubric chi tiết
+            prompt = generate_grading_prompt()
 
-📊 ĐIỂM: [X/10]
-
-✅ ĐIỂM MẠNH:
-- [Điểm mạnh 1]
-- [Điểm mạnh 2]
-
-❌ LỖI SAI (nếu có):
-- "Trích nguyên văn lỗi trong bài" → Sửa: [giải thích đúng]
-- "Trích nguyên văn lỗi khác" → Sửa: [giải thích đúng]
-
-💡 GỢI Ý:
-[1-2 câu gợi ý cải thiện]
-
-LƯU Ý: 
-- Phải TRÍCH NGUYÊN VĂN câu/đoạn sai trong bài làm (đặt trong dấu ngoặc kép)
-- Chỉ ra lỗi CỤ THỂ: sai sự kiện, sai năm tháng, sai khái niệm, thiếu logic...
-- Tối đa 150 từ"""
-
+            # Gọi model AI (thay 'model' bằng model của bạn)
             response = model.generate_content([img, prompt])
             ai_feedback = response.text
             
-            # Format lại response
-            ai_feedback = ai_feedback.replace('**', '<strong>').replace('**', '</strong>')
-            ai_feedback = ai_feedback.replace('\n', '<br>')
+            # Format lại response để hiển thị đẹp
+            ai_feedback = format_feedback_html(ai_feedback)
             
         except Exception as e:
             ai_feedback = f"⚠ Lỗi khi xử lý ảnh: {str(e)}"
 
     return render_template('upload_image.html', feedback=ai_feedback)
+
+
+def format_feedback_html(text):
+    """Format feedback thành HTML đẹp"""
+    
+    # Thay thế markdown bold
+    text = text.replace('**', '<strong>').replace('**', '</strong>')
+    
+    # Thêm màu sắc cho các phần
+    text = text.replace('📊 TỔNG ĐIỂM:', '<div class="total-score">📊 TỔNG ĐIỂM:')
+    text = text.replace('📝 ĐIỂM CHI TIẾT:', '</div><div class="details">📝 ĐIỂM CHI TIẾT:')
+    text = text.replace('✅ ĐIỂM MẠNH', '</div><div class="strengths">✅ ĐIỂM MẠNH')
+    text = text.replace('❌ LỖI SAI', '</div><div class="errors">❌ LỖI SAI')
+    text = text.replace('💡 GỢI Ý', '</div><div class="suggestions">💡 GỢI Ý')
+    
+    # Xuống dòng
+    text = text.replace('\n', '<br>')
+    
+    text += '</div>'  # Đóng div cuối cùng
+    
+    return text
+
     ##########################################
 
 @app.route("/tam_an")
